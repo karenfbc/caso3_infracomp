@@ -8,7 +8,6 @@ import java.util.Base64;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.CyclicBarrier;
-
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
@@ -48,21 +47,6 @@ public class Cliente extends Thread {
 
     public long getTiempoGenerarCodigoAutenticacion() {
         return tiempoGenerarCodigoAutenticacion;
-    }
-
-    public Integer getNumerito() {
-        return Numerito;
-    }
-
-    // Convertir de cadena hexadecimal a bytes
-    private byte[] hexToString(String cadena) {
-        int len = cadena.length();
-        byte[] bytes = new byte[len / 2];
-        for (int i = 0; i < len; i += 2) {
-            bytes[i / 2] = (byte) ((Character.digit(cadena.charAt(i), 16) << 4)
-                    + Character.digit(cadena.charAt(i + 1), 16));
-        }
-        return bytes;
     }
 
     @Override
@@ -123,7 +107,7 @@ public class Cliente extends Thread {
 
         // Paso 4: Recibir reto cifrado del servidor y verificar la firma
         byte[] encryptedReto = (byte[]) in.readObject();
-        File file = new File("server_key.txt");
+        File file = new File("public_keys/server_public_key.txt");
 
         // Leer llave pública del servidor desde archivo
         try (Scanner scanner = new Scanner(file)) {
@@ -133,11 +117,11 @@ public class Cliente extends Thread {
         }
 
         // Verificar firma del reto
-        Signature firma = Signature.getInstance("SHA256withRSA");
-        firma.initVerify(servidorPublicKey);
-        firma.update(reto);
-        boolean valido = firma.verify(encryptedReto);
-        if (valido) {
+        Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        rsaCipher.init(Cipher.DECRYPT_MODE, servidorPublicKey);
+        byte[] retoDecifrado = rsaCipher.doFinal(encryptedReto);
+
+        if (Arrays.equals(reto, retoDecifrado)) {
             out.writeObject("OK");
         } else {
             out.writeObject("ERROR");
@@ -151,15 +135,13 @@ public class Cliente extends Thread {
         iv = (byte[]) in.readObject();
 
         // Verificar integridad de los parámetros de Diffie-Hellman usando firma
-        String g_c = g.toString();
-        String p_c = p.toString();
-        String gx_c = gx.toString();
-        String msgConcat = g_c + p_c + gx_c;
+        String msgConcat = g.toString() + p.toString() + gx.toString();
         byte[] encryptedMsg = (byte[]) in.readObject();
 
+        Signature firma = Signature.getInstance("SHA1withRSA");
         firma.initVerify(servidorPublicKey);
         firma.update(msgConcat.getBytes());
-        valido = firma.verify(encryptedMsg);
+        boolean valido = firma.verify(encryptedMsg);
 
         if (!valido) {
             out.writeObject("ERROR");
@@ -169,7 +151,7 @@ public class Cliente extends Thread {
         }
 
         // Paso 9: Generar parte del cliente en Diffie-Hellman
-        y = gx.mod(p);
+        y = new BigInteger(p.bitLength(), random);
         gy = g.modPow(y, p);
         out.writeObject(gy);
 
@@ -181,10 +163,10 @@ public class Cliente extends Thread {
         MessageDigest sha512 = MessageDigest.getInstance("SHA-512");
         byte[] hash = sha512.digest(secretKey.toString().getBytes());
 
-        k_ab1 = Arrays.copyOfRange(hash, 0, hash.length / 2); // Llave para cifrado
-        k_ab2 = Arrays.copyOfRange(hash, hash.length / 2, hash.length); // Llave para autenticación
+        k_ab1 = Arrays.copyOfRange(hash, 0, 32); // Llave para cifrado (256 bits)
+        k_ab2 = Arrays.copyOfRange(hash, 32, 64); // Llave para autenticación (256 bits)
         llave_simetrica = new SecretKeySpec(k_ab1, "AES");
-        llave_autenticacion = new SecretKeySpec(k_ab2, "HmacSHA256");
+        llave_autenticacion = new SecretKeySpec(k_ab2, "HmacSHA384");
     }
 
     private byte[] cifrarMensaje(byte[] mensaje) {
@@ -211,9 +193,9 @@ public class Cliente extends Thread {
 
     private byte[] generarCodigoAutenticacion(byte[] mensaje) {
         try {
-            Mac hmacSha256 = Mac.getInstance("HmacSHA256");
-            hmacSha256.init(llave_autenticacion);
-            return hmacSha256.doFinal(mensaje);
+            Mac hmacSha384 = Mac.getInstance("HmacSHA384");
+            hmacSha384.init(llave_autenticacion);
+            return hmacSha384.doFinal(mensaje);
         } catch (Exception e) {
             e.printStackTrace();
         }
