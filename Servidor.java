@@ -28,7 +28,7 @@ public class Servidor extends Thread {
 
     private SecretKey llave_simetrica, llave_autenticacion;
     private final int PORT = 1234;
-    
+
     private Long TimeGenerarConsulta = 0L, TimeDescrifarConsulta = 0L, TimeVerificarCodigoAutenticacion = 0L;
 
     private byte[] hexToString(String cadena) {
@@ -112,8 +112,7 @@ public class Servidor extends Thread {
                         ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream())) {
                     Long startTime, endTime;
 
-
-                    //Paso 2: Recibir R
+                    // Paso 2: Recibir R
 
                     String initMessage = (String) in.readObject();
                     byte[] reto = (byte[]) in.readObject();
@@ -122,7 +121,7 @@ public class Servidor extends Thread {
                     startTime = System.nanoTime();
 
                     Cipher cipher1 = Cipher.getInstance("RSA");
-                    cipher1.init(Cipher.DECRYPT_MODE, privada_servidor); 
+                    cipher1.init(Cipher.DECRYPT_MODE, privada_servidor);
                     byte[] Rta = cipher1.doFinal(reto);
                     endTime = System.nanoTime();
                     this.TimeGenerarConsulta += endTime - startTime; // TODO:revisar
@@ -133,7 +132,6 @@ public class Servidor extends Thread {
                     // Paso 6: recibir "OK" o "ERROR"
 
                     String Mensaje = (String) in.readObject();
-
 
                     // Paso 7: Generar G, P, G^x
                     generarLlave();
@@ -146,7 +144,7 @@ public class Servidor extends Thread {
                     Signature firma = Signature.getInstance("SHA256withRSA");
                     String msgConcat = String.join(g.toString(), p.toString(), gx.toString());
                     firma.initSign(privada_servidor);
-                    firma.update(msgConcat.getBytes()); //pasamos datos a firmar
+                    firma.update(msgConcat.getBytes()); // pasamos datos a firmar
                     byte[] msgEncrypt = firma.sign();
                     out.writeObject(msgEncrypt);
 
@@ -168,7 +166,7 @@ public class Servidor extends Thread {
                     k_ab1 = Arrays.copyOfRange(hash, 0, (hash.length / 2));
                     k_ab2 = Arrays.copyOfRange(hash, (hash.length / 2), hash.length);
 
-                    // Paso 12
+                    // Paso 12: enviar iv 
                     SecureRandom random = new SecureRandom();
                     byte[] iv = new byte[16];
                     random.nextBytes(iv);
@@ -180,81 +178,58 @@ public class Servidor extends Thread {
                     Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
                     cipher.init(Cipher.DECRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
 
-                
-                    // Paso 13: Recepción del login cifrado C(K_AB1,uid)
+                    // Paso 13: C(K_AB1, uid)
+
                     @SuppressWarnings("unchecked")
-                    ArrayList<byte[]> uidYHash = (ArrayList<byte[]>) in.readObject();
-                    byte[] uid_dec = cipher.doFinal(uidYHash.get(0));
-                    byte[] hashuid_dec = cipher.doFinal(uidYHash.get(1));
+                    ArrayList<byte[]> UIDYHash = (ArrayList<byte[]>) in.readObject();
+                    byte[] uid_dec = cipher.doFinal(UIDYHash.get(0));
+                    byte[] hash_uid_dec = cipher.doFinal(UIDYHash.get(1));
 
-                    // Paso 14: Recepción de paquete_id cifrado C(K_AB2,paquete_id)
-                    @SuppressWarnings("unchecked")
-                    ArrayList<byte[]> paqueteIdYHash = (ArrayList<byte[]>) in.readObject();
-                    byte[] paqueteId_dec = cipher.doFinal(paqueteIdYHash.get(0));
-                    byte[] hashpaqueteId_dec = cipher.doFinal(paqueteIdYHash.get(1));
-
-                    uid = new String(uid_dec);
-                    // System.out.println("Se decifró el uid: "+uid);
-                    paquete_id = new String(paqueteId_dec);
-                    // System.out.println("Se decifró el paquete_id: "+paquete_id);
-
-
-                    // Paso 16: Verificación de integridad con hash
-                    sha512 = MessageDigest.getInstance("SHA-512");
-                    byte[] uidVerifHash = sha512.digest(uid.getBytes());
-                    if (Arrays.equals(uidVerifHash, hashuid_dec)) {
-                        byte[] paqueteIdVerifHash = sha512.digest(paquete_id.getBytes());
-                        if (Arrays.equals(paqueteIdVerifHash, hashpaqueteId_dec)) {
-                            out.writeObject("OK");
-                        } else {
-                            out.writeObject("ERROR");
-                            return;
-                        }
-                    } else {
-                        out.writeObject("ERROR");
-                        return;
-                    }
-
-                    byte[] consulta_enc = (byte[]) in.readObject();
-                    byte[] consulta_hmac = (byte[]) in.readObject();
-
-                    startTime = System.nanoTime();
-
-                    cipher.init(Cipher.DECRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
-                    byte[] consulta_dec = cipher.doFinal(consulta_enc);
-
-                    endTime = System.nanoTime();
-                    this.TimeDescrifarConsulta += endTime - startTime;
-
-                    startTime = System.nanoTime();
+                    // Paso 13: HMAC(K_AB2, uid)
 
                     Mac hmacSha256 = Mac.getInstance("HmacSHA256");
                     llave_autenticacion = new SecretKeySpec(k_ab2, "HmacSHA256");
                     hmacSha256.init(llave_autenticacion);
 
-                    byte[] hmac_revisar = hmacSha256.doFinal(consulta_dec);
+                    uid = new String(uid_dec);
 
-                    int rta;
-                    if (new String(hmac_revisar).equals(new String(consulta_hmac))) {
-                        rta = -1;
-                    } else {
-                        rta = 0;
-                    }
-                    endTime = System.nanoTime();
-                    this.TimeVerificarCodigoAutenticacion += endTime - startTime;
+                    byte[] hmac_revisar1 = hmacSha256.doFinal(hash_uid_dec);
 
-                    // Paso 19
+                    // Paso 14: C(K_AB1, paquete_id)
+
                     cipher.init(Cipher.ENCRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
-                    byte[] rta_enc = cipher.doFinal((String.valueOf(rta)).getBytes());
-                    out.writeObject(rta_enc);
-                    // System.out.println("server" + rta_enc);
+                    byte[] paqueteIdCiphertext = cipher.doFinal(paquete_id.getBytes());
+                    out.writeObject(paqueteIdCiphertext);
 
-                    // Paso 16: enviar HMAC(K_AB2, estado)
-                    byte[] rta_hmac = hmacSha256.doFinal((String.valueOf(rta)).getBytes());
-                    out.writeObject(rta_hmac);
+                    // Paso 14: HMAC(K_AB2, paquete_id)
 
-                    //Paso 18: recibir mensaje "Terminar"
-                    Mensaje = (String) in.readObject();
+                    @SuppressWarnings("unchecked")
+                    ArrayList<byte[]> paqueteIdYHash = (ArrayList<byte[]>) in.readObject();
+                    byte[] contra_dec = cipher.doFinal(paqueteIdYHash.get(0));
+                    byte[] hashContra_dec = cipher.doFinal(paqueteIdYHash.get(1));
+
+                    paquete_id = new String(contra_dec);
+
+                    byte[] hmac_revisar2 = hmacSha256.doFinal(hashContra_dec);
+
+                    // Paso 15: Verificar y responder
+                    if (Arrays.equals(hmac_revisar1, hmacSha256.doFinal(uid_dec)) && Arrays.equals(hmac_revisar2, hmacSha256.doFinal(paquete_id.getBytes()))) {
+                        String estado = "OK";
+                        out.writeObject(cipher.doFinal(estado.getBytes()));
+
+                    byte[] estadoHmac = hmacSha256.doFinal(estado.getBytes());
+                        out.writeObject(estadoHmac);
+                    } else {
+                        // Enviar error de autenticación si no coincide
+                        String estado = "ERROR";
+                        out.writeObject(cipher.doFinal(estado.getBytes()));
+
+                        byte[] estadoHmac = hmacSha256.doFinal(estado.getBytes());
+                        out.writeObject(estadoHmac);
+                    }
+
+                    // Paso 18: recibir "Terminar"
+                        String terminar = (String) in.readObject();
 
                 } catch (Exception e) {
                     e.printStackTrace();
