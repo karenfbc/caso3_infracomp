@@ -24,7 +24,7 @@ public class Cliente extends Thread {
     public static final String SERVER = "localhost";
     private PublicKey servidorPublicKey;
     private byte[] iv;
-    private String login = "johan";
+    private String login = "login";
     private String contrasenia = "1234";
     private long tiempoVerificarFirma, tiempoGenerarGY, tiempoCifrarConsulta, tiempoGenerarCodigoAutenticacion;
     private CyclicBarrier barrier;
@@ -123,7 +123,7 @@ public class Cliente extends Thread {
 
         // Paso 4: Recibir reto cifrado del servidor y verificar la firma
         byte[] encryptedReto = (byte[]) in.readObject();
-        File file = new File("server_public_key.txt");
+        File file = new File("server_key.txt");
 
         // Leer llave pública del servidor desde archivo
         try (Scanner scanner = new Scanner(file)) {
