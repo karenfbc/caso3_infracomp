@@ -104,7 +104,7 @@ public class Servidor extends Thread {
     public void run() {
 
         generateKeys();
-        System.out.println("llave privada: "+privada_servidor);
+        System.out.println("llave privada: " + privada_servidor);
 
         System.out.println("Servidor comienza y espera en el puerto " + PORT);
         try (ServerSocket serverSocket = new ServerSocket(PORT, 1000000000)) {
@@ -114,11 +114,10 @@ public class Servidor extends Thread {
                         ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream())) {
                     Long startTime, endTime;
 
-
-                    // Paso 1: Recibir 
+                    // Paso 1: Recibir
 
                     String initMessage = (String) in.readObject();
-                    
+
                     // Paso 2: Recibir R
 
                     byte[] R = (byte[]) in.readObject();
@@ -133,7 +132,7 @@ public class Servidor extends Thread {
                     cipher1.init(Cipher.DECRYPT_MODE, privada_servidor);
                     byte[] Rta = cipher1.doFinal(R);
                     endTime = System.nanoTime();
-                    this.TimeGenerarConsulta += endTime - startTime; 
+                    this.TimeGenerarConsulta += endTime - startTime;
 
                     System.out.println("Paso 3: Servidor OK");
 
@@ -191,7 +190,7 @@ public class Servidor extends Thread {
 
                     System.out.println("Paso 11b: Servidor OK");
 
-                    // Paso 12: enviar iv 
+                    // Paso 12: enviar iv
                     SecureRandom random = new SecureRandom();
                     byte[] iv = new byte[16];
                     random.nextBytes(iv);
@@ -228,7 +227,7 @@ public class Servidor extends Thread {
 
                     System.out.println("Paso 13: Servidor OK");
 
-                    // Paso 14: HMAC(K_AB2, paquete_id)
+                    // Paso 14:
 
                     @SuppressWarnings("unchecked")
                     ArrayList<byte[]> paqueteIdYHash = (ArrayList<byte[]>) in.readObject();
@@ -239,30 +238,35 @@ public class Servidor extends Thread {
 
                     byte[] hmac_revisar2 = hmacSha256.doFinal(hashContra_dec);
 
+                    byte[] consulta_enc = (byte[]) in.readObject();
+                    byte[] consulta_hmac = (byte[]) in.readObject();
+
                     System.out.println("Paso 14: Servidor OK");
 
                     // Paso 15: Verificar y responder
-                    if (Arrays.equals(hmac_revisar1, hmacSha256.doFinal(uid_dec)) && Arrays.equals(hmac_revisar2, hmacSha256.doFinal(paquete_id.getBytes()))) {
-                        String estado = "OK";
-                        out.writeObject(cipher.doFinal(estado.getBytes()));
 
-                    byte[] estadoHmac = hmacSha256.doFinal(estado.getBytes());
-                        out.writeObject(estadoHmac);
+                    int rta;
+                    if (new String(hmac_revisar2).equals(new String(consulta_hmac))) {
+                        rta = -1;
                     } else {
-                        // Enviar error de autenticación si no coincide
-                        String estado = "ERROR";
-                        out.writeObject(cipher.doFinal(estado.getBytes()));
-
-                        byte[] estadoHmac = hmacSha256.doFinal(estado.getBytes());
-                        out.writeObject(estadoHmac);
+                        rta = 0;
                     }
+                    endTime = System.nanoTime();
+                    this.TimeVerificarCodigoAutenticacion += endTime - startTime;
+
+                    cipher.init(Cipher.ENCRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
+                    byte[] rta_enc = cipher.doFinal((String.valueOf(rta)).getBytes());
+                    out.writeObject(rta_enc);
+
+                    byte[] rta_hmac = hmacSha256.doFinal((String.valueOf(rta)).getBytes());
+                    out.writeObject(rta_hmac);
 
                     System.out.println("Paso 15: Servidor OK");
 
                     // Paso 18: recibir "Terminar"
-                        String terminar = (String) in.readObject();
+                    String terminar = (String) in.readObject();
 
-                        System.out.println("Paso 18: Servidor OK");
+                    System.out.println("Paso 18: Servidor OK");
 
                 } catch (Exception e) {
                     e.printStackTrace();

@@ -188,7 +188,6 @@ public class Cliente extends Thread {
 
             //paso 12
 
-
             System.out.println("Paso 12: Cliente OK");
 
             // Preparacion 13
@@ -196,12 +195,12 @@ public class Cliente extends Thread {
             MessageDigest sha512Login = MessageDigest.getInstance("SHA-512");
             byte[] loginHash = sha512Login.digest(login.getBytes());
             byte[] loginHashCifrado = cipher.doFinal(loginHash);
-            ArrayList<byte[]> loginYHash = new ArrayList<>();
-            loginYHash.add(login_encriptado);
-            loginYHash.add(loginHashCifrado);
+            ArrayList<byte[]> UIDYHash = new ArrayList<>();
+            UIDYHash.add(login_encriptado);
+            UIDYHash.add(loginHashCifrado);
 
-            // Paso 13. Envio de Login cifrado con su Hash
-            out.writeObject(loginYHash);
+            // Paso 13. Envio de uid cifrado con su Hash
+            out.writeObject(UIDYHash);
 
             System.out.println("Paso 13: Cliente OK");
 
@@ -210,12 +209,12 @@ public class Cliente extends Thread {
             MessageDigest sha512Contra = MessageDigest.getInstance("SHA-512");
             byte[] contraHash = sha512Contra.digest(contrasenia.getBytes());
             byte[] contraHashCifrado = cipher.doFinal(contraHash);
-            ArrayList<byte[]> contraYHash = new ArrayList<>();
-            contraYHash.add(contra_encriptada);
-            contraYHash.add(contraHashCifrado);
+            ArrayList<byte[]> paqueteIdYHash = new ArrayList<>();
+            paqueteIdYHash.add(contra_encriptada);
+            paqueteIdYHash.add(contraHashCifrado);
 
             // Paso 14. Envio de paquete cifrado con su Hash
-            out.writeObject(contraYHash);
+            out.writeObject(paqueteIdYHash);
 
             System.out.println("Paso 14: Cliente OK");
 
@@ -228,7 +227,7 @@ public class Cliente extends Thread {
             endTime = System.nanoTime();
             out.writeObject(consulta_encriptada);
             this.tiempoCifrarConsulta = endTime - startTime;
-            
+
             startTime = System.nanoTime();
             Mac hmacSha256 = Mac.getInstance("HmacSHA256");
             llave_autenticacion = new SecretKeySpec(k_ab2, "HmacSHA256");
