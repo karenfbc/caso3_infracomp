@@ -15,8 +15,8 @@ public class Conexion {
 
         while (true) {
             System.out.println("Seleccione una opción:");
-            System.out.println("1. Generar las llaves asimétricas del servidor y almacenarlas en archivos.");
-            System.out.println("2. Ejecutar la simulación de clientes concurrentes.");
+            System.out.println("1. Generar las llaves y almacenarlas en archivos.");
+            System.out.println("2. Ejecutar el protocolo.");
             System.out.println("0. Salir.");
             String opcion = scanner.nextLine();
 
@@ -71,11 +71,12 @@ public class Conexion {
         } catch (InterruptedException e) {
             System.out.println("Interrupción durante la espera inicial.");
         }
-
         while (true) {
             System.out.println(
-                    "Ingrese el número de usuarios concurrentes que desea simular o escriba '0' (cero) para volver al menú principal:");
+                    "Por favor ingrese el numero de Servidores y Clientes que desea correr:  o escriba '0' (cero) para volver al menú principal:");
             String input = scanner.nextLine();
+
+            
 
             // Resetear los tiempos en el servidor
             servidor.setTimeDescrifarConsulta(0L);

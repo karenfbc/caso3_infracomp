@@ -3,11 +3,13 @@ import java.math.BigInteger;
 import java.net.Socket;
 import java.security.*;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.CyclicBarrier;
+
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
@@ -49,46 +51,216 @@ public class Cliente extends Thread {
         return tiempoGenerarCodigoAutenticacion;
     }
 
+    public Integer getNumerito() {
+        return Numerito;
+    }
+
+    // Convertir de cadena hexadecimal a bytes
+    private byte[] hexToString(String cadena) {
+        int len = cadena.length();
+        byte[] bytes = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            bytes[i / 2] = (byte) ((Character.digit(cadena.charAt(i), 16) << 4)
+                    + Character.digit(cadena.charAt(i + 1), 16));
+        }
+
+        return bytes;
+    }
+
     @Override
     public void run() {
+
+
         try (Socket socket = new Socket(SERVER, PORT);
                 ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
                 ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
 
             long startTime, endTime;
 
-            // Proceso de comunicación seguro con el servidor
-            iniciarComunicacion(out, in);
+            // Paso 1
+            SecureRandom random = new SecureRandom();
+            byte[] reto = new byte[16];
+            random.nextBytes(reto);
+            out.writeObject("SECURE INIT");
+            out.writeObject(reto);
+            System.out.println("Paso 1: Cliente OK");
 
-            // Enviar consulta al servidor
+            // Cargar la clave pública
+            File file = new File("server_public_key.txt");
+            try {
+                Scanner scanner = new Scanner(file);
+                String llaveCadena = scanner.nextLine();
+                servidorPublicKey = KeyFactory.getInstance("RSA")
+                        .generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(llaveCadena)));
+                scanner.close();
+                System.out.println("Clave pública cargada correctamente: " + servidorPublicKey);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            // Paso 2: Cifrar el reto usando la clave pública del servidor
+            Cipher cipher1 = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            cipher1.init(Cipher.ENCRYPT_MODE, servidorPublicKey);
+            byte[] R = cipher1.doFinal(reto); // Cifra el reto
+            out.writeObject(R); // Enviar el reto cifrado al servidor
+            System.out.println("Paso 2: Cliente OK");
+
+            // Paso 4
+            byte[] Rta = (byte[]) in.readObject();
+            startTime = System.nanoTime();
+            Signature firma = Signature.getInstance("SHA256withRSA");
+            firma.initVerify(servidorPublicKey);
+            firma.update(reto);
+            boolean valido = firma.verify(R);
+            endTime = System.nanoTime();
+            this.tiempoVerificarFirma = endTime - startTime;
+            System.out.println("Paso 4: Cliente OK");
+
+            // Paso 5
+
+            if (valido) {
+                out.writeObject("OK");
+            } else {
+                out.writeObject("ERROR");
+                return;
+            }
+
+            System.out.println("Paso 5: Cliente OK");
+
+            // Paso 8
+            g = (BigInteger) in.readObject();
+            p = (BigInteger) in.readObject();
+            gx = (BigInteger) in.readObject();
+            iv = (byte[]) in.readObject();
+
+            String g_c = g.toString();
+            String p_c = p.toString();
+            String gx_c = gx.toString();
+            String msgConcat = String.join(g_c, p_c, gx_c);
+
+            byte[] encryptedMsg = (byte[]) in.readObject();
+
+            firma.initVerify(servidorPublicKey);
+            firma.update(msgConcat.getBytes());
+            valido = firma.verify(encryptedMsg);
+
+            System.out.println("Paso 8: Cliente OK");
+
+            // Paso 9
+
+            if (valido) {
+                out.writeObject("OK");
+            } else {
+                out.writeObject("ERROR");
+                return;
+            }
+            startTime = System.nanoTime();
+            y = gx.mod(p);
+            gy = g.modPow(y, BigInteger.TEN);
+            endTime = System.nanoTime();
+            this.tiempoGenerarGY = endTime - startTime;
+
+            System.out.println("Paso 9: Cliente OK");
+
+            // Paso 10
+            out.writeObject(gy);
+
+            System.out.println("Paso 10: Cliente OK");
+
+            // Paso 11a
+            gxy = gx.modPow(y, BigInteger.TEN);
+            BigInteger secretKey = gxy.mod(p);
+
+            MessageDigest sha512 = MessageDigest.getInstance("SHA-512");
+            byte[] hash = sha512.digest(secretKey.toString().getBytes());
+
+            k_ab1 = Arrays.copyOfRange(hash, 0, (hash.length / 2));
+            k_ab2 = Arrays.copyOfRange(hash, (hash.length / 2), hash.length);
+
+            llave_simetrica = new SecretKeySpec(k_ab1, "AES");
+
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.ENCRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
+
+            System.out.println("Paso 11: Cliente OK");
+
+            // Preparacion 13
+            byte[] login_encriptado = cipher.doFinal(login.getBytes());
+            MessageDigest sha512Login = MessageDigest.getInstance("SHA-512");
+            byte[] loginHash = sha512Login.digest(login.getBytes());
+            byte[] loginHashCifrado = cipher.doFinal(loginHash);
+            ArrayList<byte[]> loginYHash = new ArrayList<>();
+            loginYHash.add(login_encriptado);
+            loginYHash.add(loginHashCifrado);
+
+            // Paso 13. Envio de Login cifrado con su Hash
+            out.writeObject(loginYHash);
+
+            System.out.println("Paso 13: Cliente OK");
+
+            // Preparacion 14
+            byte[] contra_encriptada = cipher.doFinal(contrasenia.getBytes());
+            MessageDigest sha512Contra = MessageDigest.getInstance("SHA-512");
+            byte[] contraHash = sha512Contra.digest(contrasenia.getBytes());
+            byte[] contraHashCifrado = cipher.doFinal(contraHash);
+            ArrayList<byte[]> contraYHash = new ArrayList<>();
+            contraYHash.add(contra_encriptada);
+            contraYHash.add(contraHashCifrado);
+
+            // Paso 14. Envio de Pasword cifrado con su Hash
+            out.writeObject(contraYHash);
+
+            System.out.println("Paso 14: Cliente OK");
+
+            // Lecturas paso 12 y 16
+            String continuar = (String) in.readObject();
+
+            String ok = (String) in.readObject();
+
+            System.out.println("Paso 12 y 16: Cliente OK");
+
+            // Paso 17
             startTime = System.nanoTime();
             Random rand = new Random();
-            int consulta = rand.nextInt(32); // Genera una consulta aleatoria
-            byte[] consulta_encriptada = cifrarMensaje(String.valueOf(consulta).getBytes());
+            int consulta = rand.nextInt(10);
+            byte[] consulta_encriptada = cipher.doFinal(String.valueOf(consulta).getBytes());
             endTime = System.nanoTime();
             out.writeObject(consulta_encriptada);
             this.tiempoCifrarConsulta = endTime - startTime;
 
-            // Generar código de autenticación para la consulta
+            System.out.println("Paso 17: Cliente OK");
+
+            // Paso 18
             startTime = System.nanoTime();
-            byte[] firmaHmac = generarCodigoAutenticacion(String.valueOf(consulta).getBytes());
+            Mac hmacSha256 = Mac.getInstance("HmacSHA256");
+            llave_autenticacion = new SecretKeySpec(k_ab2, "HmacSHA256");
+            hmacSha256.init(llave_autenticacion);
+            byte[] firmaHmac = hmacSha256.doFinal(String.valueOf(consulta).getBytes());
             endTime = System.nanoTime();
-            this.tiempoGenerarCodigoAutenticacion = endTime - startTime;
+            this.tiempoGenerarCodigoAutenticacion= endTime - startTime;
             out.writeObject(firmaHmac);
 
-            // Recibir respuesta del servidor y verificarla
-            byte[] rta_enc = (byte[]) in.readObject();
-            byte[] rta_dec = descifrarMensaje(rta_enc);
-            byte[] rta_hmac = (byte[]) in.readObject();
-            byte[] rta_revisar = generarCodigoAutenticacion(rta_dec);
+            System.out.println("Paso 18: Cliente OK");
 
-            if (Arrays.equals(rta_revisar, rta_hmac)) {
-                String estadoRecibido = new String(rta_dec).trim();
-                System.out.println("Estado del paquete: " + estadoRecibido);
+            // Paso 21
+            cipher.init(Cipher.DECRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
+
+            byte[] rta_enc = (byte[]) in.readObject();
+            byte[] rta_dec = cipher.doFinal(rta_enc);
+            byte[] rta_hmac = (byte[]) in.readObject();
+            byte[] rta_revisar = hmacSha256.doFinal(rta_dec);
+
+            System.out.println("Paso211: Cliente OK");
+            // Paso
+            if (new String(rta_revisar).equals(new String(rta_hmac))) {
                 out.writeObject("OK");
+                // System.out.println("Cliente con Id = " + this.getNumerito()+" completó el
+                // proceso correctamente");
             } else {
-                System.out.println("Error en la consulta");
                 out.writeObject("ERROR");
+                // System.out.println("Cliente con Id = " + this.getNumerito()+" NO PUDO
+                // completar el proceso correctamente");
+                return;
             }
             this.barrier.await();
 
@@ -97,108 +269,4 @@ public class Cliente extends Thread {
         }
     }
 
-    private void iniciarComunicacion(ObjectOutputStream out, ObjectInputStream in) throws Exception {
-        // Paso 1: Generar un reto aleatorio y enviarlo al servidor
-        SecureRandom random = new SecureRandom();
-        byte[] reto = new byte[16];
-        random.nextBytes(reto);
-        out.writeObject("SECURE INIT");
-        out.writeObject(reto);
-
-        // Paso 4: Recibir reto cifrado del servidor y verificar la firma
-        byte[] encryptedReto = (byte[]) in.readObject();
-        File file = new File("public_keys/server_public_key.txt");
-
-        // Leer llave pública del servidor desde archivo
-        try (Scanner scanner = new Scanner(file)) {
-            String llaveCadena = scanner.nextLine();
-            servidorPublicKey = KeyFactory.getInstance("RSA")
-                    .generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(llaveCadena)));
-        }
-
-        // Verificar firma del reto
-        Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-        rsaCipher.init(Cipher.DECRYPT_MODE, servidorPublicKey);
-        byte[] retoDecifrado = rsaCipher.doFinal(encryptedReto);
-
-        if (Arrays.equals(reto, retoDecifrado)) {
-            out.writeObject("OK");
-        } else {
-            out.writeObject("ERROR");
-            throw new SecurityException("Firma de reto inválida");
-        }
-
-        // Paso 8: Recibir valores de Diffie-Hellman (g, p, gx) e iv
-        g = (BigInteger) in.readObject();
-        p = (BigInteger) in.readObject();
-        gx = (BigInteger) in.readObject();
-        iv = (byte[]) in.readObject();
-
-        // Verificar integridad de los parámetros de Diffie-Hellman usando firma
-        String msgConcat = g.toString() + p.toString() + gx.toString();
-        byte[] encryptedMsg = (byte[]) in.readObject();
-
-        Signature firma = Signature.getInstance("SHA1withRSA");
-        firma.initVerify(servidorPublicKey);
-        firma.update(msgConcat.getBytes());
-        boolean valido = firma.verify(encryptedMsg);
-
-        if (!valido) {
-            out.writeObject("ERROR");
-            throw new SecurityException("Firma de parámetros Diffie-Hellman inválida");
-        } else {
-            out.writeObject("OK");
-        }
-
-        // Paso 9: Generar parte del cliente en Diffie-Hellman
-        y = new BigInteger(p.bitLength(), random);
-        gy = g.modPow(y, p);
-        out.writeObject(gy);
-
-        // Paso 11a: Generar clave secreta compartida
-        gxy = gx.modPow(y, p);
-        BigInteger secretKey = gxy.mod(p);
-
-        // Derivar llaves simétricas a partir de SHA-512 del secreto compartido
-        MessageDigest sha512 = MessageDigest.getInstance("SHA-512");
-        byte[] hash = sha512.digest(secretKey.toString().getBytes());
-
-        k_ab1 = Arrays.copyOfRange(hash, 0, 32); // Llave para cifrado (256 bits)
-        k_ab2 = Arrays.copyOfRange(hash, 32, 64); // Llave para autenticación (256 bits)
-        llave_simetrica = new SecretKeySpec(k_ab1, "AES");
-        llave_autenticacion = new SecretKeySpec(k_ab2, "HmacSHA384");
-    }
-
-    private byte[] cifrarMensaje(byte[] mensaje) {
-        try {
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            cipher.init(Cipher.ENCRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
-            return cipher.doFinal(mensaje);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    private byte[] descifrarMensaje(byte[] mensajeCifrado) {
-        try {
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            cipher.init(Cipher.DECRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
-            return cipher.doFinal(mensajeCifrado);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    private byte[] generarCodigoAutenticacion(byte[] mensaje) {
-        try {
-            Mac hmacSha384 = Mac.getInstance("HmacSHA384");
-            hmacSha384.init(llave_autenticacion);
-            return hmacSha384.doFinal(mensaje);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
 }
