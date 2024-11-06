@@ -103,6 +103,7 @@ public class Servidor extends Thread {
     public void run() {
 
         generateKeys();
+        System.out.println("llave privada: "+privada_servidor);
 
         System.out.println("Servidor comienza y espera en el puerto " + PORT);
         try (ServerSocket serverSocket = new ServerSocket(PORT, 1000000000)) {
@@ -112,6 +113,8 @@ public class Servidor extends Thread {
                         ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream())) {
                     Long startTime, endTime;
 
+
+                    // Paso 1: Recibir SECINIT
 
                     String initMessage = (String) in.readObject();
                     
@@ -124,6 +127,7 @@ public class Servidor extends Thread {
                     // Paso 3: Calcular Rta= D(K_w-, R)
                     startTime = System.nanoTime();
 
+                    System.out.println("llegue");
                     Cipher cipher1 = Cipher.getInstance("RSA");
                     cipher1.init(Cipher.DECRYPT_MODE, privada_servidor);
                     byte[] Rta = cipher1.doFinal(R);

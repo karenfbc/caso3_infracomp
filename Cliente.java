@@ -78,12 +78,9 @@ public class Cliente extends Thread {
             long startTime, endTime;
 
             // Paso 1
-            SecureRandom random = new SecureRandom();
-            byte[] reto = new byte[16];
-            random.nextBytes(reto);
-            out.writeObject("SECURE INIT");
-            out.writeObject(reto);
-            System.out.println("Paso 1: Cliente OK");
+        
+            out.writeObject("SECINIT");
+    
 
             // Cargar la clave pública
             File file = new File("server_public_key.txt");
@@ -99,14 +96,16 @@ public class Cliente extends Thread {
             }
 
             // Paso 2: Cifrar el reto usando la clave pública del servidor
-            Cipher cipher1 = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            Cipher cipher1 = Cipher.getInstance("RSA");
             cipher1.init(Cipher.ENCRYPT_MODE, servidorPublicKey);
             byte[] R = cipher1.doFinal(reto); // Cifra el reto
             out.writeObject(R); // Enviar el reto cifrado al servidor
             System.out.println("Paso 2: Cliente OK");
 
             // Paso 4
+            System.out.println("estoy en paso 4");
             byte[] Rta = (byte[]) in.readObject();
+            System.out.println("estoy en paso 4");
             startTime = System.nanoTime();
             Signature firma = Signature.getInstance("SHA256withRSA");
             firma.initVerify(servidorPublicKey);
