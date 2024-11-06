@@ -79,8 +79,7 @@ public class Cliente extends Thread {
 
             // Paso 1
         
-            out.writeObject("SECINIT");
-    
+            out.writeObject("SECINIT");    
 
             // Cargar la clave pública
             File file = new File("server_public_key.txt");
@@ -96,6 +95,11 @@ public class Cliente extends Thread {
             }
 
             // Paso 2: Cifrar el reto usando la clave pública del servidor
+
+            SecureRandom random = new SecureRandom();
+            byte[] reto = new byte[16];
+            random.nextBytes(reto);
+            
             Cipher cipher1 = Cipher.getInstance("RSA");
             cipher1.init(Cipher.ENCRYPT_MODE, servidorPublicKey);
             byte[] R = cipher1.doFinal(reto); // Cifra el reto
