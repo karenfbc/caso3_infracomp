@@ -228,14 +228,6 @@ public class Servidor extends Thread {
 
                     System.out.println("Paso 13: Servidor OK");
 
-                    // Paso 14: C(K_AB1, paquete_id)
-
-                    cipher.init(Cipher.ENCRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
-                    byte[] paqueteIdCiphertext = cipher.doFinal(paquete_id.getBytes());
-                    out.writeObject(paqueteIdCiphertext);
-
-                    System.out.println("Paso 14: Servidor OK");
-
                     // Paso 14: HMAC(K_AB2, paquete_id)
 
                     @SuppressWarnings("unchecked")

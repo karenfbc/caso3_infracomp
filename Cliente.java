@@ -179,10 +179,17 @@ public class Cliente extends Thread {
 
             llave_simetrica = new SecretKeySpec(k_ab1, "AES");
 
+            iv = (byte[]) in.readObject();
+
             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
             cipher.init(Cipher.ENCRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
 
             System.out.println("Paso 11: Cliente OK");
+
+            //paso 12
+
+
+            System.out.println("Paso 12: Cliente OK");
 
             // Preparacion 13
             byte[] login_encriptado = cipher.doFinal(login.getBytes());
@@ -207,19 +214,13 @@ public class Cliente extends Thread {
             contraYHash.add(contra_encriptada);
             contraYHash.add(contraHashCifrado);
 
-            // Paso 14. Envio de Pasword cifrado con su Hash
+            // Paso 14. Envio de paquete cifrado con su Hash
             out.writeObject(contraYHash);
 
             System.out.println("Paso 14: Cliente OK");
 
-            // Lecturas paso 12 y 16
-            String continuar = (String) in.readObject();
+            // Paso 14
 
-            String ok = (String) in.readObject();
-
-            System.out.println("Paso 12 y 16: Cliente OK");
-
-            // Paso 17
             startTime = System.nanoTime();
             Random rand = new Random();
             int consulta = rand.nextInt(10);
@@ -227,10 +228,7 @@ public class Cliente extends Thread {
             endTime = System.nanoTime();
             out.writeObject(consulta_encriptada);
             this.tiempoCifrarConsulta = endTime - startTime;
-
-            System.out.println("Paso 17: Cliente OK");
-
-            // Paso 18
+            
             startTime = System.nanoTime();
             Mac hmacSha256 = Mac.getInstance("HmacSHA256");
             llave_autenticacion = new SecretKeySpec(k_ab2, "HmacSHA256");
@@ -240,9 +238,9 @@ public class Cliente extends Thread {
             this.tiempoGenerarCodigoAutenticacion= endTime - startTime;
             out.writeObject(firmaHmac);
 
-            System.out.println("Paso 18: Cliente OK");
+            System.out.println("Paso 14: Cliente OK");
 
-            // Paso 21
+            // Paso 16
             cipher.init(Cipher.DECRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
 
             byte[] rta_enc = (byte[]) in.readObject();
@@ -250,16 +248,14 @@ public class Cliente extends Thread {
             byte[] rta_hmac = (byte[]) in.readObject();
             byte[] rta_revisar = hmacSha256.doFinal(rta_dec);
 
-            System.out.println("Paso211: Cliente OK");
-            // Paso
+            System.out.println("Paso16: Cliente OK");
+
+            // Paso 18
             if (new String(rta_revisar).equals(new String(rta_hmac))) {
-                out.writeObject("OK");
-                // System.out.println("Cliente con Id = " + this.getNumerito()+" completó el
-                // proceso correctamente");
+                out.writeObject("TERMINAR");
+
             } else {
                 out.writeObject("ERROR");
-                // System.out.println("Cliente con Id = " + this.getNumerito()+" NO PUDO
-                // completar el proceso correctamente");
                 return;
             }
             this.barrier.await();
