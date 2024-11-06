@@ -70,6 +70,7 @@ public class Servidor extends Thread {
         File file = new File("DiffieHellman.txt");
 
         try {
+
             Scanner scanner = new Scanner(file);
 
             // Cadena de bytes de p
@@ -114,7 +115,7 @@ public class Servidor extends Thread {
                     Long startTime, endTime;
 
 
-                    // Paso 1: Recibir SECINIT
+                    // Paso 1: Recibir 
 
                     String initMessage = (String) in.readObject();
                     
@@ -156,12 +157,13 @@ public class Servidor extends Thread {
                     out.writeObject(p);
                     out.writeObject(gx);
 
-                    Signature firma = Signature.getInstance("SHA256withRSA");
-                    String msgConcat = String.join(g.toString(), p.toString(), gx.toString());
-                    firma.initSign(privada_servidor);
-                    firma.update(msgConcat.getBytes()); // pasamos datos a firmar
-                    byte[] msgEncrypt = firma.sign();
-                    out.writeObject(msgEncrypt);
+                    Signature signature = Signature.getInstance("SHA1withRSA");
+                    signature.initSign(privada_servidor);
+                    signature.update(g.toByteArray());
+                    signature.update(p.toByteArray());
+                    signature.update(gx.toByteArray());
+                    byte[] firma = signature.sign();
+                    out.writeObject(firma);
 
                     System.out.println("Paso 8: Servidor OK");
 

@@ -99,7 +99,7 @@ public class Cliente extends Thread {
             SecureRandom random = new SecureRandom();
             byte[] reto = new byte[16];
             random.nextBytes(reto);
-            
+
             Cipher cipher1 = Cipher.getInstance("RSA");
             cipher1.init(Cipher.ENCRYPT_MODE, servidorPublicKey);
             byte[] R = cipher1.doFinal(reto); // Cifra el reto
@@ -107,56 +107,53 @@ public class Cliente extends Thread {
             System.out.println("Paso 2: Cliente OK");
 
             // Paso 4
-            System.out.println("estoy en paso 4");
             byte[] Rta = (byte[]) in.readObject();
-            System.out.println("estoy en paso 4");
-            startTime = System.nanoTime();
-            Signature firma = Signature.getInstance("SHA256withRSA");
-            firma.initVerify(servidorPublicKey);
-            firma.update(reto);
-            boolean valido = firma.verify(R);
-            endTime = System.nanoTime();
-            this.tiempoVerificarFirma = endTime - startTime;
+
             System.out.println("Paso 4: Cliente OK");
 
-            // Paso 5
+            // Paso 5 y 6
 
-            if (valido) {
+            if (Arrays.equals(Rta, reto)) {
                 out.writeObject("OK");
             } else {
                 out.writeObject("ERROR");
                 return;
             }
 
-            System.out.println("Paso 5: Cliente OK");
+            System.out.println("Paso 6: Cliente OK");
 
             // Paso 8
+
             g = (BigInteger) in.readObject();
             p = (BigInteger) in.readObject();
             gx = (BigInteger) in.readObject();
-            iv = (byte[]) in.readObject();
 
-            String g_c = g.toString();
-            String p_c = p.toString();
-            String gx_c = gx.toString();
-            String msgConcat = String.join(g_c, p_c, gx_c);
+            String msgConcat = g.toString() + p.toString() + gx.toString();
 
-            byte[] encryptedMsg = (byte[]) in.readObject();
+            byte[] msgEncrypt = (byte[]) in.readObject();
 
-            firma.initVerify(servidorPublicKey);
-            firma.update(msgConcat.getBytes());
-            valido = firma.verify(encryptedMsg);
+            startTime = System.nanoTime();
+            Signature signature = Signature.getInstance("SHA1withRSA");
+            signature.initVerify(servidorPublicKey);
 
-            System.out.println("Paso 8: Cliente OK");
+            signature.update(g.toByteArray());
+            signature.update(p.toByteArray());
+            signature.update(gx.toByteArray());
 
-            // Paso 9
+            boolean isVerified = signature.verify(msgEncrypt);
 
-            if (valido) {
+            endTime = System.nanoTime();
+            this.tiempoVerificarFirma = endTime - startTime;
+
+            if (isVerified) {
                 out.writeObject("OK");
             } else {
                 out.writeObject("ERROR");
                 return;
             }
+
+            System.out.println("Paso 8: Cliente OK");
+
             startTime = System.nanoTime();
             y = gx.mod(p);
             gy = g.modPow(y, BigInteger.TEN);
