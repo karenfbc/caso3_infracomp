@@ -127,7 +127,6 @@ public class Servidor extends Thread {
                     // Paso 3: Calcular Rta= D(K_w-, R)
                     startTime = System.nanoTime();
 
-                    System.out.println("llegue");
                     Cipher cipher1 = Cipher.getInstance("RSA");
                     cipher1.init(Cipher.DECRYPT_MODE, privada_servidor);
                     byte[] Rta = cipher1.doFinal(R);
@@ -231,12 +230,12 @@ public class Servidor extends Thread {
 
                     @SuppressWarnings("unchecked")
                     ArrayList<byte[]> paqueteIdYHash = (ArrayList<byte[]>) in.readObject();
-                    byte[] contra_dec = cipher.doFinal(paqueteIdYHash.get(0));
-                    byte[] hashContra_dec = cipher.doFinal(paqueteIdYHash.get(1));
+                    byte[] paquete_dec = cipher.doFinal(paqueteIdYHash.get(0));
+                    byte[] hashpaquete_dec = cipher.doFinal(paqueteIdYHash.get(1));
 
-                    paquete_id = new String(contra_dec);
+                    paquete_id = new String(paquete_dec);
 
-                    byte[] hmac_revisar2 = hmacSha256.doFinal(hashContra_dec);
+                    byte[] hmac_revisar2 = hmacSha256.doFinal(hashpaquete_dec);
 
                     byte[] consulta_enc = (byte[]) in.readObject();
                     byte[] consulta_hmac = (byte[]) in.readObject();
