@@ -6,6 +6,8 @@ import java.security.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -23,14 +25,74 @@ public class Servidor extends Thread {
     private String uid;
     private String paquete_id;
 
-    // Estados de los paquetes
-    public static final int EN_OFICINA = 0;
-    public static final int RECOGIDO = 1;
-    public static final int EN_CLASIFICACION = 2;
-    public static final int DESPACHADO = 3;
-    public static final int EN_ENTREGA = 4;
-    public static final int ENTREGADO = 5;
-    public static final int DESCONOCIDO = 6;
+    // Estados de paquetes
+    private static final int EN_OFICINA = 1;
+    private static final int RECOGIDO = 2;
+    private static final int EN_CLASIFICACION = 3;
+    private static final int DESPACHADO = 4;
+    private static final int EN_ENTREGA = 5;
+    private static final int ENTREGADO = 6;
+    private static final int DESCONOCIDO = 7;
+
+    // Mapa para almacenar los estados de los paquetes
+    private Map<String, Integer> estadosPaquetes;
+
+    public Servidor() {
+        
+        estadosPaquetes = new HashMap<>();
+        estadosPaquetes.put("paquete1", EN_OFICINA);
+        estadosPaquetes.put("paquete2", RECOGIDO);
+        estadosPaquetes.put("paquete3", EN_CLASIFICACION);
+        estadosPaquetes.put("paquete4", DESPACHADO);
+        estadosPaquetes.put("paquete5", EN_ENTREGA);
+        estadosPaquetes.put("paquete6", ENTREGADO);
+        estadosPaquetes.put("paquete7", DESCONOCIDO);
+        estadosPaquetes.put("paquete8", EN_OFICINA);
+        estadosPaquetes.put("paquete9", RECOGIDO);
+        estadosPaquetes.put("paquete10", EN_CLASIFICACION);
+        estadosPaquetes.put("paquete11", DESPACHADO);
+        estadosPaquetes.put("paquete12", EN_ENTREGA);
+        estadosPaquetes.put("paquete13", ENTREGADO);
+        estadosPaquetes.put("paquete14", DESCONOCIDO);
+        estadosPaquetes.put("paquete15", EN_OFICINA);
+        estadosPaquetes.put("paquete16", RECOGIDO);
+        estadosPaquetes.put("paquete17", EN_CLASIFICACION);
+        estadosPaquetes.put("paquete18", DESPACHADO);
+        estadosPaquetes.put("paquete19", EN_ENTREGA);
+        estadosPaquetes.put("paquete20", ENTREGADO);
+        estadosPaquetes.put("paquete21", DESCONOCIDO);
+        estadosPaquetes.put("paquete22", EN_OFICINA);
+        estadosPaquetes.put("paquete23", RECOGIDO);
+        estadosPaquetes.put("paquete24", EN_CLASIFICACION);
+        estadosPaquetes.put("paquete25", DESPACHADO);
+        estadosPaquetes.put("paquete26", EN_ENTREGA);
+        estadosPaquetes.put("paquete27", ENTREGADO);
+        estadosPaquetes.put("paquete28", DESCONOCIDO);
+        estadosPaquetes.put("paquete29", EN_OFICINA);
+        estadosPaquetes.put("paquete30", RECOGIDO);
+        estadosPaquetes.put("paquete31", EN_CLASIFICACION);
+        estadosPaquetes.put("paquete32", DESPACHADO);
+        
+    }
+
+    private String obtenerEstadoTexto(int estado) {
+        switch (estado) {
+            case EN_OFICINA:
+                return "EN OFICINA";
+            case RECOGIDO:
+                return "RECOGIDO";
+            case EN_CLASIFICACION:
+                return "EN CLASIFICACION";
+            case DESPACHADO:
+                return "DESPACHADO";
+            case EN_ENTREGA:
+                return "EN ENTREGA";
+            case ENTREGADO:
+                return "ENTREGADO";
+            default:
+                return "DESCONOCIDO";
+        }
+    }
 
     private BigInteger p, x, y, g, gx, gy, gyx;
     private byte[] k_ab1, k_ab2;
