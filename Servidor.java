@@ -23,6 +23,15 @@ public class Servidor extends Thread {
     private String uid;
     private String paquete_id;
 
+    // Estados de los paquetes
+    public static final int EN_OFICINA = 0;
+    public static final int RECOGIDO = 1;
+    public static final int EN_CLASIFICACION = 2;
+    public static final int DESPACHADO = 3;
+    public static final int EN_ENTREGA = 4;
+    public static final int ENTREGADO = 5;
+    public static final int DESCONOCIDO = 6;
+
     private BigInteger p, x, y, g, gx, gy, gyx;
     private byte[] k_ab1, k_ab2;
 
@@ -284,12 +293,14 @@ public class Servidor extends Thread {
                     endTime = System.nanoTime();
                     this.TimeVerificarCodigoAutenticacion += endTime - startTime;
 
-                    cipher.init(Cipher.ENCRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
-                    byte[] rta_enc = cipher.doFinal((String.valueOf(rta)).getBytes());
-                    out.writeObject(rta_enc);
+                    // Paso 16: 
 
-                    byte[] rta_hmac = hmacSha256.doFinal((String.valueOf(rta)).getBytes());
-                    out.writeObject(rta_hmac);
+                    cipher.init(Cipher.ENCRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
+                    byte[] estado_enc = cipher.doFinal((String.valueOf(rta)).getBytes());
+                    out.writeObject(estado_enc);
+
+                    byte[] estado_hmac = hmacSha256.doFinal((String.valueOf(rta)).getBytes());
+                    out.writeObject(estado_hmac);
 
                     System.out.println("Paso 15: Servidor OK");
 

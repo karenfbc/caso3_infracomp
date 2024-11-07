@@ -18,15 +18,6 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class Cliente extends Thread {
 
-    // Estados de los paquetes
-    public static final int EN_OFICINA = 0;
-    public static final int RECOGIDO = 1;
-    public static final int EN_CLASIFICACION = 2;
-    public static final int DESPACHADO = 3;
-    public static final int EN_ENTREGA = 4;
-    public static final int ENTREGADO = 5;
-    public static final int DESCONOCIDO = 6;
-
     private Integer Num;
     private BigInteger g, p, gx, y, gy, gxy;
     private byte[] k_ab1, k_ab2;
