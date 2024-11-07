@@ -6,7 +6,7 @@ import java.util.concurrent.CyclicBarrier;
 import java.io.File;
 import java.io.IOException;
 
-public class Conexion {
+public class Main {
     private static Servidor servidor;
 
     public static void main(String[] args) throws InterruptedException, BrokenBarrierException {
