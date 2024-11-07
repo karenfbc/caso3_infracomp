@@ -289,12 +289,11 @@ public class Servidor extends Thread {
 
                     cipher.init(Cipher.ENCRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
                     byte[] estado_enc = cipher.doFinal((String.valueOf(rta)).getBytes());
-                    out.writeObject(estado_enc);
-
                     byte[] estado_hmac = hmacSha256.doFinal((String.valueOf(rta)).getBytes());
-                    out.writeObject(estado_hmac);
-
                     endTime = System.nanoTime();
+
+                    out.writeObject(estado_enc);
+                    out.writeObject(estado_hmac);
                     
                     this.TimeCifrarLLaveSimetrica += endTime - startTime;
 
