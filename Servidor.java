@@ -29,7 +29,7 @@ public class Servidor extends Thread {
     private SecretKey llave_simetrica, llave_autenticacion;
     private final int PORT = 1234;
 
-    private Long TimeGenerarConsulta = 0L, TimeDescrifarConsulta = 0L, TimeVerificarCodigoAutenticacion = 0L;
+    private Long TimeGenerarConsulta = 0L, TimeDescifrarConsulta = 0L, TimeVerificarCodigoAutenticacion = 0L;
 
     private byte[] hexToString(String cadena) {
         int len = cadena.length();
@@ -46,8 +46,8 @@ public class Servidor extends Thread {
         TimeGenerarConsulta = timeGenerarConsulta;
     }
 
-    public void setTimeDescrifarConsulta(Long timeDescrifarConsulta) {
-        TimeDescrifarConsulta = timeDescrifarConsulta;
+    public void setTimeDescifrarConsulta(Long timeDescifrarConsulta) {
+        TimeDescifrarConsulta = timeDescifrarConsulta;
     }
 
     public void setTimeVerificarCodigoAutenticacion(Long timeVerificarCodigoAutenticacion) {
@@ -58,8 +58,8 @@ public class Servidor extends Thread {
         return TimeGenerarConsulta;
     }
 
-    public Long getTimeDescrifarConsulta() {
-        return TimeDescrifarConsulta;
+    public Long getTimeDescifrarConsulta() {
+        return TimeDescifrarConsulta;
     }
 
     public Long getTimeVerificarCodigoAutenticacion() {
@@ -226,8 +226,13 @@ public class Servidor extends Thread {
                     // Paso 15
                     llave_simetrica = new SecretKeySpec(k_ab1, "AES");
 
+                    startTime = System.nanoTime();
+
                     Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
                     cipher.init(Cipher.DECRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
+
+                    endTime = System.nanoTime();
+                    this.TimeDescifrarConsulta += endTime - startTime;
 
                     System.out.println("Paso 15: Servidor OK");
 

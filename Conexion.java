@@ -224,7 +224,7 @@ public class Conexion {
                 System.out.println("TIEMPOS DEL SERVIDOR: \n");
                 System.out.println("Tiempo generar la firma: " + servidor.getTimeGenerarConsulta() + " nanosegundos");
                 System.out.println(
-                        "Tiempo descifrar la consulta: " + servidor.getTimeDescrifarConsulta() + " nanosegundos");
+                        "Tiempo descifrar la consulta: " + servidor.getTimeDescifrarConsulta() + " nanosegundos");
                 System.out.println("Tiempo verificar el código de autenticacion: "
                         + servidor.getTimeVerificarCodigoAutenticacion() + " nanosegundos\n");
                 System.out.println("Todos los clientes han completado sus tareas. Puede ingresar otro caso o salir.");
