@@ -100,6 +100,32 @@ public class Servidor extends Thread {
 
     }
 
+    public void medirTiempoCifrado() {
+        try {
+            // Ejemplo de cifrado simétrico (AES)
+            byte[] datos = "Datos de prueba".getBytes(); 
+            Cipher cipherSimetrico = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipherSimetrico.init(Cipher.ENCRYPT_MODE, llave_simetrica, new IvParameterSpec(new byte[16]));
+            long startTime = System.nanoTime();
+            byte[] datosCifradosSimetricamente = cipherSimetrico.doFinal(datos);
+            long endTime = System.nanoTime();
+            long tiempoSimetrico = endTime - startTime;
+            System.out.println("Tiempo de cifrado simétrico: " + tiempoSimetrico + " nanosegundos");
+
+            // Ejemplo de cifrado asimétrico (RSA)
+            Cipher cipherAsimetrico = Cipher.getInstance("RSA");
+            cipherAsimetrico.init(Cipher.ENCRYPT_MODE, publica_servidor); 
+            startTime = System.nanoTime();
+            byte[] datosCifradosAsimetricamente = cipherAsimetrico.doFinal(datos);
+            endTime = System.nanoTime();
+            long tiempoAsimetrico = endTime - startTime;
+            System.out.println("Tiempo de cifrado asimétrico: " + tiempoAsimetrico + " nanosegundos");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void run() {
 
@@ -266,6 +292,8 @@ public class Servidor extends Thread {
                     String terminar = (String) in.readObject();
 
                     System.out.println("Paso 18: Servidor OK");
+
+                    medirTiempoCifrado();
 
                 } catch (Exception e) {
                     e.printStackTrace();
