@@ -17,7 +17,17 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class Cliente extends Thread {
-    private Integer Numerito;
+
+    // Estados de los paquetes
+    public static final int EN_OFICINA = 0;
+    public static final int RECOGIDO = 1;
+    public static final int EN_CLASIFICACION = 2;
+    public static final int DESPACHADO = 3;
+    public static final int EN_ENTREGA = 4;
+    public static final int ENTREGADO = 5;
+    public static final int DESCONOCIDO = 6;
+
+    private Integer Num;
     private BigInteger g, p, gx, y, gy, gxy;
     private byte[] k_ab1, k_ab2;
     private SecretKey llave_simetrica, llave_autenticacion;
@@ -25,13 +35,13 @@ public class Cliente extends Thread {
     public static final String SERVER = "localhost";
     private PublicKey servidorPublicKey;
     private byte[] iv;
-    private String login = "login";
-    private String contrasenia = "1234";
+    private String uid = "uid";
+    private String paqueteId = "1234";
     private long tiempoVerificarFirma, tiempoGenerarGY, tiempoCifrarConsulta, tiempoGenerarCodigoAutenticacion;
     private CyclicBarrier barrier;
 
-    public Cliente(Integer numerito, CyclicBarrier barrier) {
-        Numerito = numerito;
+    public Cliente(Integer num, CyclicBarrier barrier) {
+        Num = num;
         this.barrier = barrier;
     }
 
@@ -51,8 +61,8 @@ public class Cliente extends Thread {
         return tiempoGenerarCodigoAutenticacion;
     }
 
-    public Integer getNumerito() {
-        return Numerito;
+    public Integer getNum() {
+        return Num;
     }
 
     // Convertir de cadena hexadecimal a bytes
@@ -190,28 +200,26 @@ public class Cliente extends Thread {
 
             System.out.println("Paso 12: Cliente OK");
 
-            // Preparacion 13
-            byte[] login_encriptado = cipher.doFinal(login.getBytes());
-            MessageDigest sha512Login = MessageDigest.getInstance("SHA-512");
-            byte[] loginHash = sha512Login.digest(login.getBytes());
-            byte[] loginHashCifrado = cipher.doFinal(loginHash);
+            byte[] uid_encriptado = cipher.doFinal(uid.getBytes());
+            MessageDigest sha512uid = MessageDigest.getInstance("SHA-512");
+            byte[] uidHash = sha512uid.digest(uid.getBytes());
+            byte[] uidHashCifrado = cipher.doFinal(uidHash);
             ArrayList<byte[]> UIDYHash = new ArrayList<>();
-            UIDYHash.add(login_encriptado);
-            UIDYHash.add(loginHashCifrado);
+            UIDYHash.add(uid_encriptado);
+            UIDYHash.add(uidHashCifrado);
 
             // Paso 13. Envio de uid cifrado con su Hash
             out.writeObject(UIDYHash);
 
             System.out.println("Paso 13: Cliente OK");
 
-            // Preparacion 14
-            byte[] contra_encriptada = cipher.doFinal(contrasenia.getBytes());
-            MessageDigest sha512Contra = MessageDigest.getInstance("SHA-512");
-            byte[] contraHash = sha512Contra.digest(contrasenia.getBytes());
-            byte[] contraHashCifrado = cipher.doFinal(contraHash);
+            byte[] paqueteId_encriptada = cipher.doFinal(paqueteId.getBytes());
+            MessageDigest sha512paqueteId = MessageDigest.getInstance("SHA-512");
+            byte[] paqueteIdHash = sha512paqueteId.digest(paqueteId.getBytes());
+            byte[] paqueteIdHashCifrado = cipher.doFinal(paqueteIdHash);
             ArrayList<byte[]> paqueteIdYHash = new ArrayList<>();
-            paqueteIdYHash.add(contra_encriptada);
-            paqueteIdYHash.add(contraHashCifrado);
+            paqueteIdYHash.add(paqueteId_encriptada);
+            paqueteIdYHash.add(paqueteIdHashCifrado);
 
             // Paso 14. Envio de paquete cifrado con su Hash
             out.writeObject(paqueteIdYHash);
