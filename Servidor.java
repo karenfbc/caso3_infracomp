@@ -38,7 +38,7 @@ public class Servidor extends Thread {
     private SecretKey llave_simetrica, llave_autenticacion;
     private final int PORT = 1234;
 
-    private Long TimeGenerarConsulta = 0L, TimeDescifrarConsulta = 0L, TimeVerificarCodigoAutenticacion = 0L;
+    private Long TimeGenerarConsulta = 0L, TimeDescifrarConsulta = 0L,TimeCifrarLLaveAsimetrica = 0L, TimeCifrarLLaveSimetrica = 0L, TimeVerificarCodigoAutenticacion = 0L;
 
     private byte[] hexToString(String cadena) {
         int len = cadena.length();
@@ -63,6 +63,14 @@ public class Servidor extends Thread {
         TimeVerificarCodigoAutenticacion = timeVerificarCodigoAutenticacion;
     }
 
+    public void setTimeCifrarLLaveSimetrica(Long timeCifrarLLaveSimetrica) {
+        TimeCifrarLLaveSimetrica = timeCifrarLLaveSimetrica;
+    }
+
+    public void setTimeCifrarLLaveASimetrica(Long timeCifrarLLaveAsimetrica) {
+        TimeCifrarLLaveAsimetrica = timeCifrarLLaveAsimetrica;
+    }
+
     public Long getTimeGenerarConsulta() {
         return TimeGenerarConsulta;
     }
@@ -73,6 +81,14 @@ public class Servidor extends Thread {
 
     public Long getTimeVerificarCodigoAutenticacion() {
         return TimeVerificarCodigoAutenticacion;
+    }
+
+    public Long getTimeCifrarLLaveSimetrica() {
+        return TimeCifrarLLaveSimetrica;
+    }
+
+    public Long getTimeCifrarLLaveAsimetrica() {
+        return TimeCifrarLLaveAsimetrica;
     }
 
     private void generarLlave() {
@@ -107,32 +123,6 @@ public class Servidor extends Thread {
             e.printStackTrace();
         }
 
-    }
-
-    public void medirTiempoCifrado() {
-        try {
-            // Ejemplo de cifrado simétrico (AES)
-            byte[] datos = "Datos de prueba".getBytes(); 
-            Cipher cipherSimetrico = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            cipherSimetrico.init(Cipher.ENCRYPT_MODE, llave_simetrica, new IvParameterSpec(new byte[16]));
-            long startTime = System.nanoTime();
-            byte[] datosCifradosSimetricamente = cipherSimetrico.doFinal(datos);
-            long endTime = System.nanoTime();
-            long tiempoSimetrico = endTime - startTime;
-            System.out.println("Tiempo de cifrado simétrico: " + tiempoSimetrico + " nanosegundos");
-
-            // Ejemplo de cifrado asimétrico (RSA)
-            Cipher cipherAsimetrico = Cipher.getInstance("RSA");
-            cipherAsimetrico.init(Cipher.ENCRYPT_MODE, publica_servidor); 
-            startTime = System.nanoTime();
-            byte[] datosCifradosAsimetricamente = cipherAsimetrico.doFinal(datos);
-            endTime = System.nanoTime();
-            long tiempoAsimetrico = endTime - startTime;
-            System.out.println("Tiempo de cifrado asimétrico: " + tiempoAsimetrico + " nanosegundos");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     @Override
@@ -293,7 +283,9 @@ public class Servidor extends Thread {
                     endTime = System.nanoTime();
                     this.TimeVerificarCodigoAutenticacion += endTime - startTime;
 
-                    // Paso 16: 
+                    // Paso 16: (también medir tiempos de cifrado simétrico y asimétrico)
+
+                    startTime = System.nanoTime();
 
                     cipher.init(Cipher.ENCRYPT_MODE, llave_simetrica, new IvParameterSpec(iv));
                     byte[] estado_enc = cipher.doFinal((String.valueOf(rta)).getBytes());
@@ -302,14 +294,28 @@ public class Servidor extends Thread {
                     byte[] estado_hmac = hmacSha256.doFinal((String.valueOf(rta)).getBytes());
                     out.writeObject(estado_hmac);
 
+                    endTime = System.nanoTime();
+                    
+                    this.TimeCifrarLLaveSimetrica += endTime - startTime;
+
+                    //cifrado asimetrico 
+
+                    startTime = System.nanoTime();
+
+                    Cipher cipherAsimetrico = Cipher.getInstance("RSA"); // Usar RSA específicamente
+                    cipherAsimetrico.init(Cipher.ENCRYPT_MODE, publica_servidor); // Usa la clave pública para cifrar
+                    byte[] estado_enc2 = cipherAsimetrico.doFinal(String.valueOf(rta).getBytes());
+
+                    endTime = System.nanoTime();
+                    
+                    this.TimeCifrarLLaveAsimetrica = endTime - startTime;
+
                     System.out.println("Paso 15: Servidor OK");
 
                     // Paso 18: recibir "Terminar"
                     String terminar = (String) in.readObject();
 
                     System.out.println("Paso 18: Servidor OK");
-
-                    medirTiempoCifrado();
 
                 } catch (Exception e) {
                     e.printStackTrace();

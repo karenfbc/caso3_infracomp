@@ -227,6 +227,8 @@ public class Conexion {
                         "Tiempo descifrar la consulta: " + servidor.getTimeDescifrarConsulta() + " nanosegundos");
                 System.out.println("Tiempo verificar el código de autenticacion: "
                         + servidor.getTimeVerificarCodigoAutenticacion() + " nanosegundos\n");
+                System.out.println("Tiempo cifrado llave simetrica: " + servidor.getTimeCifrarLLaveSimetrica() + " nanosegundos");
+                System.out.println("Tiempo cifrado llave asimetrica: " + servidor.getTimeCifrarLLaveAsimetrica() + " nanosegundos");
                 System.out.println("Todos los clientes han completado sus tareas. Puede ingresar otro caso o salir.");
             } catch (NumberFormatException e) {
                 System.out.println("Por favor, ingrese un número válido de usuarios o '0' (cero) para terminar.");
