@@ -305,6 +305,7 @@ public class Servidor extends Thread {
                     Cipher cipherAsimetrico = Cipher.getInstance("RSA"); // Usar RSA específicamente
                     cipherAsimetrico.init(Cipher.ENCRYPT_MODE, publica_servidor); // Usa la clave pública para cifrar
                     byte[] estado_enc2 = cipherAsimetrico.doFinal(String.valueOf(rta).getBytes());
+                    byte[] estado_hmac2 = hmacSha256.doFinal((String.valueOf(rta)).getBytes());
 
                     endTime = System.nanoTime();
                     
