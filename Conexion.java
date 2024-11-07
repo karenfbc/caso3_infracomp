@@ -97,7 +97,7 @@ public class Conexion {
             System.out.println("Ingrese el número de clientes que desea correr (ej. 1, 2, 4, etc.) o '0' para volver al menú principal:");
             String input = scanner.nextLine();
     
-            servidor.setTimeDescrifarConsulta(0L);
+            servidor.setTimeDescifrarConsulta(0L);
             servidor.setTimeGenerarConsulta(0L);
             servidor.setTimeVerificarCodigoAutenticacion(0L);
     
@@ -145,7 +145,7 @@ public class Conexion {
     
                 System.out.println("TIEMPOS DEL SERVIDOR: \n");
                 System.out.println("Tiempo generar la firma: " + servidor.getTimeGenerarConsulta() + " nanosegundos");
-                System.out.println("Tiempo descifrar la consulta: " + servidor.getTimeDescrifarConsulta() + " nanosegundos");
+                System.out.println("Tiempo descifrar la consulta: " + servidor.getTimeDescifrarConsulta() + " nanosegundos");
                 System.out.println("Tiempo verificar el código de autenticación: "
                         + servidor.getTimeVerificarCodigoAutenticacion() + " nanosegundos\n");
                 System.out.println("Todos los clientes han completado sus tareas.");
@@ -174,7 +174,7 @@ public class Conexion {
             
 
             // Resetear los tiempos en el servidor
-            servidor.setTimeDescrifarConsulta(0L);
+            servidor.setTimeDescifrarConsulta(0L);
             servidor.setTimeGenerarConsulta(0L);
             servidor.setTimeVerificarCodigoAutenticacion(0L);
 
