@@ -36,7 +36,7 @@ public class Cliente extends Thread {
     private PublicKey servidorPublicKey;
     private byte[] iv;
     private String uid = "uid";
-    private String paqueteId = "1234";
+    private String paqueteId = "12";
     private long tiempoVerificarFirma, tiempoGenerarGY, tiempoCifrarConsulta, tiempoGenerarCodigoAutenticacion;
     private CyclicBarrier barrier;
 
