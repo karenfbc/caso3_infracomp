@@ -77,6 +77,12 @@ public class Cliente extends Thread {
         return bytes;
     }
 
+    public void ejecutar32Consultas() {
+        for (int i = 0; i < 32; i++) {
+            run(); 
+        }
+    }
+
     @Override
     public void run() {
 
